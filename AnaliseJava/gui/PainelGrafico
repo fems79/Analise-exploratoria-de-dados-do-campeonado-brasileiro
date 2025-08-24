@@ -1,0 +1,57 @@
+package AnaliseJava.gui;
+
+import javax.swing.JPanel;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public class PainelGrafico extends JPanel {
+    private Map<String, Integer> dados;
+
+    public PainelGrafico() {
+        this.setPreferredSize(new Dimension(800, 400));
+        this.setBackground(Color.WHITE);
+    }
+
+    public void setDados(Map<String, Integer> dados) {
+        this.dados = dados.entrySet().stream()
+                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, _) -> e1, LinkedHashMap::new));
+        repaint(); 
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        if (dados == null || dados.isEmpty()) return;
+
+        int larguraBarra = 50;
+        int espacoEntreBarras = 20;
+        int margemX = 50;
+        int margemY = 50;
+        int alturaDisponivel = getHeight() - 2 * margemY;
+        int valorMaximo = Collections.max(dados.values());
+
+        g.setColor(Color.BLACK);
+        g.drawString("Gráfico de Vitórias por Time", getWidth() / 2 - 70, 20);
+
+        int x = margemX;
+        for (Map.Entry<String, Integer> entry : dados.entrySet()) {
+            int valor = entry.getValue();
+            int alturaBarra = (int) (((double) valor / valorMaximo) * alturaDisponivel);
+
+            g.setColor(Color.decode("#3498db")); 
+            g.fillRect(x, getHeight() - margemY - alturaBarra, larguraBarra, alturaBarra);
+
+            g.setColor(Color.BLACK);
+            g.drawString(entry.getKey(), x + 5, getHeight() - margemY + 15);
+            g.drawString(String.valueOf(valor), x + larguraBarra / 2 - 5, getHeight() - margemY - alturaBarra - 5);
+            
+            x += (larguraBarra + espacoEntreBarras);
+        }
+    }
+}
