@@ -6,7 +6,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.swing.*;
 
-// ====================== CLASSE PARTIDA ======================
 class Partida {
     private final String mandante;
     private final String visitante;
@@ -32,7 +31,6 @@ class Partida {
     }
 }
 
-// ====================== CLASSE TIME ======================
 class Time {
     private final String nome;
     private int pontos = 0;
@@ -67,7 +65,6 @@ class Time {
     }
 }
 
-// ====================== CLASSE ANALISADORDADOS ======================
 class AnalisadorDados {
     public static List<Partida> lerCsv(String caminhoArquivo) throws IOException {
         List<Partida> partidas = new ArrayList<>();
@@ -98,7 +95,6 @@ class AnalisadorDados {
     }
 }
 
-// ====================== CLASSE PAINELGRAFICO ======================
 class PainelGrafico extends JPanel {
     private Map<String,Integer> dados;
 
@@ -172,7 +168,6 @@ protected void paintComponent(Graphics g) {
 
 }
 
-// ====================== CLASSE TELAPRINCIPAL ======================
 class TelaPrincipal extends JFrame {
     private final PainelGrafico painelGrafico;
     private Map<String, Time> times;
@@ -244,8 +239,6 @@ class TelaPrincipal extends JFrame {
         painelGrafico.setDados(dadosGrafico);
     }
 }
-
-// ====================== CLASSE MAIN ======================
 public class Main {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new TelaPrincipal().setVisible(true));
