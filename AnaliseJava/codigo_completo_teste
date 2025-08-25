@@ -1,0 +1,253 @@
+import java.awt.*;
+import java.io.*;
+import java.util.*;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.swing.*;
+
+// ====================== CLASSE PARTIDA ======================
+class Partida {
+    private final String mandante;
+    private final String visitante;
+    private final int golsMandante;
+    private final int golsVisitante;
+
+    public Partida(String mandante, String visitante, int golsMandante, int golsVisitante) {
+        this.mandante = mandante;
+        this.visitante = visitante;
+        this.golsMandante = golsMandante;
+        this.golsVisitante = golsVisitante;
+    }
+
+    public String getMandante() { return mandante; }
+    public String getVisitante() { return visitante; }
+    public int getGolsMandante() { return golsMandante; }
+    public int getGolsVisitante() { return golsVisitante; }
+
+    public int[] getPontos() {
+        if (golsMandante > golsVisitante) return new int[]{3,0};
+        else if (golsVisitante > golsMandante) return new int[]{0,3};
+        else return new int[]{1,1};
+    }
+}
+
+// ====================== CLASSE TIME ======================
+class Time {
+    private final String nome;
+    private int pontos = 0;
+    private int pontosCasa = 0;
+    private int pontosFora = 0;
+    private int golsPro = 0;
+    private int golsContra = 0;
+
+    public Time(String nome) { this.nome = nome; }
+    public String getNome() { return nome; }
+    public int getPontos() { return pontos; }
+    public int getPontosCasa() { return pontosCasa; }
+    public int getPontosFora() { return pontosFora; }
+    public int getGolsPro() { return golsPro; }
+    public int getGolsContra() { return golsContra; }
+    public int getSaldoDeGols() { return golsPro - golsContra; }
+
+    public void atualizar(Partida p) {
+        if (p.getMandante().equals(nome)) {
+            int pts = p.getPontos()[0];
+            pontos += pts;
+            pontosCasa += pts;
+            golsPro += p.getGolsMandante();
+            golsContra += p.getGolsVisitante();
+        } else if (p.getVisitante().equals(nome)) {
+            int pts = p.getPontos()[1];
+            pontos += pts;
+            pontosFora += pts;
+            golsPro += p.getGolsVisitante();
+            golsContra += p.getGolsMandante();
+        }
+    }
+}
+
+// ====================== CLASSE ANALISADORDADOS ======================
+class AnalisadorDados {
+    public static List<Partida> lerCsv(String caminhoArquivo) throws IOException {
+        List<Partida> partidas = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(caminhoArquivo))) {
+            String linha = br.readLine(); // cabeçalho
+            while ((linha = br.readLine()) != null) {
+                String[] campos = linha.split(",");
+                if (campos.length < 5) continue;
+                partidas.add(new Partida(
+                        campos[1], campos[2],
+                        Integer.parseInt(campos[3]),
+                        Integer.parseInt(campos[4])
+                ));
+            }
+        }
+        return partidas;
+    }
+
+    public static Map<String, Time> gerarTimes(List<Partida> partidas) {
+        Map<String, Time> times = new HashMap<>();
+        for (Partida p : partidas) {
+            times.putIfAbsent(p.getMandante(), new Time(p.getMandante()));
+            times.putIfAbsent(p.getVisitante(), new Time(p.getVisitante()));
+            times.get(p.getMandante()).atualizar(p);
+            times.get(p.getVisitante()).atualizar(p);
+        }
+        return times;
+    }
+}
+
+// ====================== CLASSE PAINELGRAFICO ======================
+class PainelGrafico extends JPanel {
+    private Map<String,Integer> dados;
+
+    public PainelGrafico() {
+        this.setPreferredSize(new Dimension(800,400));
+        this.setBackground(Color.WHITE);
+    }
+
+    public void setDados(Map<String,Integer> dados) {
+        // Ordena do maior para o menor
+        this.dados = dados.entrySet().stream()
+                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1,e2)->e1, LinkedHashMap::new));
+
+        // Ajusta o tamanho do painel conforme número de times
+        int larguraBarra = 50;
+        int espacoEntreBarras = 20;
+        int margemX = 50;
+        int totalBarras = this.dados.size();
+        int larguraTotal = margemX*2 + totalBarras * larguraBarra + (totalBarras-1) * espacoEntreBarras;
+        this.setPreferredSize(new Dimension(larguraTotal, 400));
+
+        revalidate(); // Atualiza o JScrollPane
+        repaint();
+    }
+
+    @Override
+protected void paintComponent(Graphics g) {
+    super.paintComponent(g);
+    if (dados == null || dados.isEmpty()) return;
+
+    int larguraBarra = 50;
+    int espacoEntreBarras = 20;
+    int margemX = 50;
+    int margemY = 50;
+    int alturaDisponivel = getHeight() - 2*margemY;
+
+    // Calcula valor máximo absoluto para dimensionar todas as barras
+    int valorMaximo = dados.values().stream().mapToInt(Math::abs).max().orElse(1);
+
+    g.setColor(Color.BLACK);
+    g.drawString("Gráfico", getWidth()/2 - 30, 20);
+
+    int x = margemX;
+    for (Map.Entry<String,Integer> entry : dados.entrySet()) {
+        int valor = entry.getValue();
+        int alturaBarra = (int)(((double)Math.abs(valor)/valorMaximo) * alturaDisponivel);
+
+        // Cor da barra: azul positivo, vermelho negativo
+        if (valor >= 0) {
+            g.setColor(Color.decode("#3498db")); // azul
+        } else {
+            g.setColor(Color.RED); // vermelho
+        }
+
+        // Todas crescem para cima
+        g.fillRect(x, getHeight()-margemY-alturaBarra, larguraBarra, alturaBarra);
+
+        // Nome do time
+        g.setColor(Color.BLACK);
+        String nome = entry.getKey();
+        int nomeLargura = g.getFontMetrics().stringWidth(nome);
+        g.drawString(nome, x + larguraBarra/2 - nomeLargura/2, getHeight()-margemY+15);
+
+        // Valor acima da barra
+        g.drawString(String.valueOf(valor), x + larguraBarra/2 - 5, getHeight()-margemY-alturaBarra-5);
+
+        x += larguraBarra + espacoEntreBarras;
+    }
+}
+
+}
+
+// ====================== CLASSE TELAPRINCIPAL ======================
+class TelaPrincipal extends JFrame {
+    private final PainelGrafico painelGrafico;
+    private Map<String, Time> times;
+    private List<Partida> partidas;
+
+    public TelaPrincipal() {
+        setTitle("Análise do Campeonato");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        JButton btnCarregar = new JButton("Carregar CSV");
+        JComboBox<String> comboAnalise = new JComboBox<>(new String[]{
+            "Classificacao Geral",
+            "Classificacao Mandante",
+            "Classificacao Visitante",
+            "Classificacao Gols-Pro",
+            "Classificacao Gols Contra",
+            "Classificacao Saldo de Gols"
+        });
+
+        JPanel painelSuperior = new JPanel();
+        painelSuperior.add(btnCarregar);
+        painelSuperior.add(comboAnalise);
+        add(painelSuperior, BorderLayout.NORTH);
+
+        painelGrafico = new PainelGrafico();
+        add(new JScrollPane(painelGrafico, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED), BorderLayout.CENTER);
+
+        btnCarregar.addActionListener(e -> {
+            JFileChooser seletor = new JFileChooser();
+            if (seletor.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                try {
+                    partidas = AnalisadorDados.lerCsv(seletor.getSelectedFile().getAbsolutePath());
+                    times = AnalisadorDados.gerarTimes(partidas);
+                    atualizarGrafico(comboAnalise.getSelectedItem().toString());
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(this, "Erro: "+ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        comboAnalise.addActionListener(e -> {
+            if (partidas != null) atualizarGrafico(comboAnalise.getSelectedItem().toString());
+        });
+
+        pack();
+        setLocationRelativeTo(null);
+    }
+
+    private void atualizarGrafico(String tipo) {
+        if (times == null) return;
+
+        Map<String,Integer> dadosGrafico = new HashMap<>();
+        Function<Time,Integer> func = null;
+
+        switch (tipo) {
+            case "Classificacao Geral": func = Time::getPontos; break;
+            case "Classificacao Mandante": func = Time::getPontosCasa; break;
+            case "Classificacao Visitante": func = Time::getPontosFora; break;
+            case "Classificacao Gols-Pro": func = Time::getGolsPro; break;
+            case "Classificacao Gols Contra": func = Time::getGolsContra; break;
+            case "Classificacao Saldo de Gols": func = Time::getSaldoDeGols; break;
+        }
+
+        if (func != null) {
+            for (Time t : times.values()) dadosGrafico.put(t.getNome(), func.apply(t));
+        }
+
+        painelGrafico.setDados(dadosGrafico);
+    }
+}
+
+// ====================== CLASSE MAIN ======================
+public class Main {
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new TelaPrincipal().setVisible(true));
+    }
+}
