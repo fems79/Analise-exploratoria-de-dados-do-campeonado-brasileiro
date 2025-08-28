@@ -1,5 +1,3 @@
-package Analisejava;
-import AnaliseJava.gui.TelaPrincipal;
 import javax.swing.SwingUtilities;
 
 public class Main {
