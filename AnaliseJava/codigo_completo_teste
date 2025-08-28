@@ -17,14 +17,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-// Para executar, é necessário que o arquivo seja renomeado para Main.java
-public class Main {
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new TelaPrincipal().setVisible(true));
-    }
-}
-
-
 class Partida {
     private final String mandante;
     private final String visitante;
