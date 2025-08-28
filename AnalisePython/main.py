@@ -59,14 +59,21 @@ class AnalisadorDados:
     def ler_csv(caminho_arquivo):
         partidas = []
         with open(caminho_arquivo, mode='r', encoding='utf-8') as f:
-            leitor = csv.DictReader(f)
+            leitor = csv.reader(f)
+            # Lê a primeira linha para ignorar o cabeçalho se ele existir.
+            # Se o seu arquivo não tiver cabeçalho, pode comentar a linha abaixo.
+            # next(leitor) 
+            
             for linha in leitor:
-                partidas.append(Partida(
-                    mandante=linha['mandante'],
-                    visitante=linha['visitante'],
-                    gols_mandante=int(linha['gols_mandante']),
-                    gols_visitante=int(linha['gols_visitante'])
-                ))
+                # O novo formato tem a data na primeira coluna (linha[0]).
+                # As informações que precisamos começam a partir da segunda coluna (linha[1]).
+                if len(linha) >= 5: # Garante que a linha tem dados suficientes
+                    partidas.append(Partida(
+                        mandante=linha[1],
+                        visitante=linha[2],
+                        gols_mandante=int(linha[3]),
+                        gols_visitante=int(linha[4])
+                    ))
         return partidas
 
     @staticmethod
@@ -179,17 +186,49 @@ class PainelPizza(tk.Canvas):
         if total == 0: return
 
         diametro = min(self.winfo_width(), self.winfo_height()) - 100
-        x, y = (self.winfo_width() - diametro) / 2, (self.winfo_height() - diametro) / 2
+        x_center, y_center = self.winfo_width() / 2, self.winfo_height() / 2
+        x0, y0 = x_center - diametro/2, y_center - diametro/2
         
-        angulo_v = self.resultados.vitorias / total * 360
-        angulo_e = self.resultados.empates / total * 360
+        start_angle = 0
         
-        self.create_arc(x, y, x+diametro, y+diametro, start=0, extent=angulo_v, fill=self.cores["v"], outline="white", style=tk.PIESLICE)
-        self.create_arc(x, y, x+diametro, y+diametro, start=angulo_v, extent=angulo_e, fill=self.cores["e"], outline="white", style=tk.PIESLICE)
-        self.create_arc(x, y, x+diametro, y+diametro, start=angulo_v+angulo_e, extent=360-(angulo_v+angulo_e), fill=self.cores["d"], outline="white", style=tk.PIESLICE)
+        resultados_dict = {
+            "Vitórias": (self.resultados.vitorias, self.cores["v"]),
+            "Empates": (self.resultados.empates, self.cores["e"]),
+            "Derrotas": (self.resultados.derrotas, self.cores["d"])
+        }
 
-        self.create_text(20, 30, text=f"Desempenho: {self.nome_time}", font=("Arial", 16, "bold"), anchor="w")
-
+        # Desenha as fatias do gráfico de pizza e a legenda
+        for nome, (valor, cor) in resultados_dict.items():
+            if valor > 0:
+                percentual = valor / total
+                extent = percentual * 360
+                
+                self.create_arc(x0, y0, x0 + diametro, y0 + diametro,
+                                start=start_angle, extent=extent,
+                                fill=cor, outline="white", style=tk.PIESLICE)
+                
+                # Calcula a posição do texto (no meio da fatia)
+                rad_angle = math.radians(start_angle + extent / 2)
+                text_x = x_center + (diametro/3) * math.cos(rad_angle)
+                text_y = y_center - (diametro/3) * math.sin(rad_angle)
+                
+                # Desenha o texto com a porcentagem
+                self.create_text(text_x, text_y, text=f"{percentual:.1%}", font=("Arial", 10, "bold"))
+                
+                start_angle += extent
+        
+        # Desenha a legenda separada
+        self.create_text(x_center, y0 - 30, text=f"Desempenho: {self.nome_time}", font=("Arial", 16, "bold"), anchor="center")
+        
+        legenda_x = x_center + diametro/2 + 20
+        legenda_y = y0
+        
+        for nome, (valor, cor) in resultados_dict.items():
+            if valor > 0:
+                self.create_rectangle(legenda_x, legenda_y, legenda_x + 10, legenda_y + 10, fill=cor)
+                self.create_text(legenda_x + 15, legenda_y + 5, text=f"{nome}: {valor}", anchor="w")
+                legenda_y += 20
+                
 class PainelMultiLinha(tk.Canvas):
     def __init__(self, master, **kwargs):
         super().__init__(master, bg='white', **kwargs)
@@ -324,8 +363,8 @@ class App(tk.Tk):
             self.combo_pizza["values"] = nomes_times
             
             def atualizar_todos_graficos():
+                # Força a atualização de todos os gráficos
                 self.atualizar_grafico_barras()
-                
                 self.painel_multilinha.set_dados(AnalisadorDados.calcular_evolucao_todos_times(self.partidas))
                 
                 if nomes_times:
