@@ -1,5 +1,8 @@
 PROJETO ANÁLISE DE DADOS DO CAMPEONATO BRASILEIRO EM PYTHON E EM JAVA
 
+Alunos:
+Felipe Ramos Santana e Leonardo Caricchio do Nascimento
+
 1)PROBLEMA E SOLUÇÃO
 1.1)LEITURA DO ARQUIVO DE ENTRADA
 Primeiramente,para realizar a análise dos dados do campeonato brasileiro,precisamos criar um código em JAVA e em PYTHON que lesse um arquivo de extensão ".csv" que a cada linha houvesse informações exatamente nessa ordem e separadas pelo delimitador vírgula:Data,Time_Mandante,Time_Visitante,Gols_Mandante,Gols_Visitante.
