@@ -45,6 +45,8 @@ Todo o código foi estruturado com base em Tkinter e dataclasses que já vem emb
 O arquivo de entrada precisa seguir um padrão para que o programa funcione conforme o esperado,um arquivo de exemplo foi disponibilizado abaixo deste arquivo(README.md),entitulado "arquivo_teste.csv",basta que o usuário copie e cole em um bloco de notas e depois troque a extensão para ".csv"
 *cada linha possui:data,nome_time_mandante,nome_time_visitante,gols_mandante,gols_visitante
 
+6)Link para o projeto
+https://github.com/fems79/Analise-exploratoria-de-dados-do-campeonado-brasileiro
 
 
 
